@@ -15,6 +15,7 @@ classdef DataHostCommunicator < handle
         
         inPort = 1103;
         outPort = 1001;
+        outPortTL = 1011;
         socket;
 
         % 1 min timeout on bidirectional host echo
@@ -141,6 +142,10 @@ classdef DataHostCommunicator < handle
         function sendAll(self, str)
            % send packet to one way hosts
            x = @(host)(sendString(self.socket, str,  host, self.outPort));
+           cellfun(x, self.oneWayHosts);
+           
+           % send packet to Timeline (SB)
+           x = @(host)(sendString(self.socket, str,  host, self.outPortTL));
            cellfun(x, self.oneWayHosts);
            
            % send packet to all bidirectional hosts
