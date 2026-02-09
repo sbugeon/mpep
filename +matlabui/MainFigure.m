@@ -458,7 +458,7 @@ classdef MainFigure < handle
             end
     
             % Prompt for number of reps
-            repString = inputdlg2('Number of repeats:', 'Input', 1, {'3'});
+            repString = inputdlg2('Number of repeats:', 'Input', 1, {'1'});
             if isempty(repString)
                 return;
             end

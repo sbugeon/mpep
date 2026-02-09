@@ -59,7 +59,8 @@ classdef DataHostCommunicator < handle
             str = sprintf('ExpStart %s %d %d', self.animal, self.series, self.experimentNumber);
             self.sendAll(str);
             disp(str);
-
+            disp('waiting for timeline');
+            pause(5)
         end
         
         function startBlock(self)
