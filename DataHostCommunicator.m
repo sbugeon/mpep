@@ -120,7 +120,7 @@ classdef DataHostCommunicator < handle
         end
         
         function interruptExperiment(self)
-            str = sprintf('ExpInterrupt %s %d %d', self.animal, self.series, self.experimentNumber);
+            str = sprintf('ExpEnd %s %d %d', self.animal, self.series, self.experimentNumber);
             self.sendAll(str);
             disp(str);
         end

@@ -39,8 +39,6 @@ classdef MainFigure < handle
         saveAsMenuItem;
         
         running = false;
-
-        stop = false;
         minimumWait = 0;
         
         inited = false; % has xfile been stim initilised
@@ -197,7 +195,6 @@ classdef MainFigure < handle
             % lower delay before showing tooltips, will effect everything -
             % even matlab GUI
             javax.swing.ToolTipManager.sharedInstance().setInitialDelay(100);
-
         end
         
         function layout(self)
@@ -413,21 +410,19 @@ classdef MainFigure < handle
                 end
             end
         end
-        function stopButtonCB(self)
-            self.stop = true;
-        end
-
+        function stButtonCB(self)     
         function runButtonCB(self)            
             
             % If we are already running then user has asked us to stop.
             % Change running flag, progress function will alert
             % Protocol.run method by changing it's return value.
-            % if self.stop
-            %     self.running = false;
-            %     set(self.runButton, 'Enable', 'off');
-            %     return;
-            % end
-           
+            if self.running
+                self.running = false;
+                set(self.runButton, 'Enable', 'off');
+                return;
+                
+            end
+            self.running = true;
             
             oldStim = self.params.stimuli();
             try
@@ -545,9 +540,8 @@ classdef MainFigure < handle
             drawnow;
             self.running = false;
             self.setControlsEnabled(1);                        
-             
+            
             if finished
-                self.stop = false;
                 self.playTada();
             end
             
@@ -750,10 +744,13 @@ classdef MainFigure < handle
     
     methods(Access = private)
         function r = progress(self, repeat, index, sequence)
-            drawnow
+            
+            if repeat ==2
+                dd=0;
+            end
             % if running flag has turned off then we need to return 1 to
             % signal experiement interrupt.     
-            if self.stop 
+            if ~self.running 
                 r = 1;
                 return;
             end

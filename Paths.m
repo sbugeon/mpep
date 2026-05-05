@@ -12,7 +12,7 @@ else
     catch % SetDefaultDirs not available.
         % Edit these paths to make mpep work in the lab
         % directory where mpep saves experiment logs
-        r.data = 'C:\Users\bugeon\Documents\MATLAB\Data';
+        r.data = '\\10.51.20.95\bugeon-team\data_raw\';
         % directory where mpep expects to find xfiles
         r.xfiles = '\\netdata\EqpCossart\Stephane Bugeon\Code\Data\xfiles';
         % config path for mpep

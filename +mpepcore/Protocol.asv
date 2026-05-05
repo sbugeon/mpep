@@ -13,24 +13,24 @@ classdef Protocol < handle
     %
     % When running the experement the protocol object will record the
     % relevant logs, save a protocol structure and a "rendered" pfile.
-
+    
     properties
         animal;
         series;
         experimentNumber;
-
+        
         params; % type: RenderedParams
         sequence; % type: array of ints
         repeats = 1;
         preMake = 0; % make stimuli first
         comment;
-
+        
         lastStimEndTime = [];
     end
     properties (SetAccess = private)
         hasRun = false;
     end
-
+    
     methods
         function self = Protocol(animal, series, expNum, rParams, repeats, preMake, comment)
             self.repeats = repeats;
@@ -81,8 +81,8 @@ classdef Protocol < handle
                     error(['Unspported experiment type: ' rParams.type]);
             end
         end
-
-
+        
+        
         % Run the experiment
         % progressFun(num, repeat) called on each stim
         % r = true if completed, false if interuppted
@@ -91,20 +91,20 @@ classdef Protocol < handle
                 error('Can not contact stimulus maker.')
             end
             Logger.singleton.start(self.series, self.experimentNumber, self.params, self.comment);
-
+            
             % record .p and Protocol.mat
             self.record();
-
+            
             stimulus.stimInitialize(self.params.xFile.name);
             stimulus.infoSave(self.animal, self.series, self.experimentNumber);
             communicator.startExperiment(self.animal, self.series, self.experimentNumber);
-
+            
             [seqLength, ~] = size(self.sequence);
-
+            
             if self.preMake && ~self.canPreMake
                 error('Can not pre make stimuli since there are repeat number placeholders (# symbols in grid).');
             end
-
+            
             if self.preMake
                 for i = 1:self.params.numStim
                     if nargin >= 4
@@ -114,7 +114,7 @@ classdef Protocol < handle
                     stimulus.holdStim();
                 end
             end
-
+            
             % fill up stim
             if strcmp(self.params.experimentType, 'adapt')
                 self.minWait();
@@ -127,33 +127,43 @@ classdef Protocol < handle
                 communicator.stimStart(self.params.numStim,...
                     self.params.getDuration(self.params.numStim)+self.params.deadTime);
                 % 'deadtime' between telling data hosts and stim server
-                pause(self.params.deadTime);
+                pause(self.params.deadTime); 
                 stimulus.showStim(stim(end, 1:end));
                 self.lastStimEnd();
                 communicator.stimEnd();
                 communicator.endZeroBlock();
             end
-
-
+            
+            
             for n = 1:self.repeats
                 communicator.startBlock();
-
+                
                 stim = self.params.stimuli;
-                drawnow
-
-
-
-
-
                 % Set "repeat num" placeholders to repeat number
                 stim(stim == Params.repNumMagic) = n;
                 for i = 1:seqLength
                     % tell progress function where we are
 
+                   
+                    if nargin >= 4
+                        interrupt = progressFun(n, i, self.sequence);
+                        if interrupt
+                            % communicator.interruptExperiment();
+                            % if nargin == 4
+                            %     Logger.singleton.interrupt(n);
+                            % else
+                            %     Logger.singleton.interrupt(n, getReason())
+                            % end
+                            communicator.endExperiment();
+                            r = true;
+                            return;
+                        end
+                    end
 
-
-
-
+                    if n==2
+                        dd=0;
+                    end
+                    
                     %show top up
                     if strcmp(self.params.experimentType, 'adapt')...
                             || strcmp(self.params.experimentType, 'priming')
@@ -171,22 +181,9 @@ classdef Protocol < handle
                         self.lastStimEnd();
                         communicator.stimEnd();
                     end
-
+                    
                     self.minWait();
-                    if nargin >= 4
-                        interrupt = progressFun(n, i, self.sequence);
-                        if interrupt
-                            % communicator.interruptExperiment();
-                            % if nargin == 4
-                            %     Logger.singleton.interrupt(n);
-                            % else
-                            %     Logger.singleton.interrupt(n, getReason())
-                            % end
-                            communicator.endExperiment();
-                            r = true;
-                            return;
-                        end
-                    end
+                    
                     stimIndex = self.sequence(i,n);
                     stimulus.makeStim(stim(stimIndex, 1:end));
                     communicator.stimStart(self.sequence(i,n), self.params.getDuration(stimIndex));
@@ -194,7 +191,7 @@ classdef Protocol < handle
                     stimulus.showStim(stim(stimIndex, 1:end));
                     self.lastStimEnd();
                     communicator.stimEnd();
-
+                    
                 end
                 communicator.endBlock()
             end
@@ -202,7 +199,7 @@ classdef Protocol < handle
             communicator.endExperiment();
             r = true;
         end
-
+        
         % timing functions
         function minWait(self)
             if isempty(self.lastStimEndTime)
@@ -215,16 +212,16 @@ classdef Protocol < handle
             end
             waittime
             passed = toc(self.lastStimEndTime);
-
+            
             if passed < waittime
                 pause(waittime-passed);
             end
         end
-
+        
         function lastStimEnd(self)
             self.lastStimEndTime = tic;
         end
-
+        
         % Create a non OO protocol structure, as used in spike
         function p = getProtocolStructure(self)
             p = ProtocolInitialize([], 'quiet');
@@ -248,10 +245,10 @@ classdef Protocol < handle
                     p.seqnums(i,j) = find(self.sequence(:,j)==i)+(n*(j-1));
                 end
             end
-
+            
             %p.seqnums
         end
-
+        
         % Write protocol structure and a .pfile (from params) to the
         % correct location on the dataPath as a record of this experiment
         % being run.
@@ -270,38 +267,38 @@ classdef Protocol < handle
             if ~exist(fullfile(dataDir, self.animal), 'dir');
                 mkdir(fullfile(dataDir, self.animal));
             end
-
+            
             % create series dir if it does not exist
             seriesPath = fullfile(dataDir, self.animal, num2str(self.series));
             if ~exist(seriesPath, 'dir');
                 mkdir(seriesPath);
             end
-
+            
             % create experiment number dir if it does not exist
             expPath = fullfile(seriesPath, num2str(self.experimentNumber));
             if ~exist(expPath, 'dir');
                 mkdir(expPath);
             end
-
+            
             % write .p file
             rpfilePath = fullfile(expPath,...
                 [self.animal '_' num2str(self.series) '_' num2str(self.experimentNumber) '.p']);
             self.params.writeToFile(rpfilePath);
-
+            
             % write Protocol.mat
             protocolMatPath = fullfile(expPath, 'Protocol.mat');
             Protocol = getProtocolStructure(self); %#ok<NASGU>
             save(protocolMatPath, 'Protocol');
         end
-
+        
         % Can we premake stimuli? This is only possible if we have no repeat
         % number placeholders ('#').
         function r = canPreMake(self)
             r = isempty(find(self.params.stimuli == double(Params.repNumMagic), 1));
         end
     end
-
-
-
+    
+    
+    
 end
 
